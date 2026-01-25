@@ -255,7 +255,7 @@ class LunarCalendarApp:
             text=f"Ngày {day_cc}",
             fill=COLOR_LUNAR, font=FONT_NORMAL, tags="text")
 
-        self.root.after(60000, self.update_all)
+        self.root.after(90000, self.update_all)
 
     def update_wallpaper(self):
         if not self.wallpapers:
@@ -267,7 +267,7 @@ class LunarCalendarApp:
         self.canvas.delete("bg")
         self.canvas.create_image(0, 0, image=self.bg_image, anchor="nw", tags="bg")
         self.canvas.tag_lower("bg")
-        self.root.after(60000, self.update_wallpaper)
+        self.root.after(90000, self.update_wallpaper)
 
 # ================== MAIN ==================
 if __name__ == "__main__":
