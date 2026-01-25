@@ -13,14 +13,14 @@ FOOTER_HEIGHT = 120
 
 # ================== COLORS ==================
 COLOR_MONTH = "#000000"
-COLOR_DAY_NORMAL = "#3498db"
+COLOR_DAY_NORMAL = "#1c46b0"
 COLOR_DAY_SUNDAY = "#e74c3c"
-COLOR_WEEKDAY_NORMAL = "#3498db"
+COLOR_WEEKDAY_NORMAL = "#1c46b0"
 COLOR_WEEKDAY_WEEKEND = "#e74c3c"
-COLOR_QUOTE = "#3498db"
+COLOR_QUOTE = "#1c46b0"
 COLOR_AUTHOR = "#f39c12"
 COLOR_LABEL = "#7f8c8d"
-COLOR_TIME = "#3498db"
+COLOR_TIME = "#1c46b0"
 COLOR_LUNAR = "#000000"
 COLOR_FOOTER_BG = "#cfe6a8"
 COLOR_SEPARATOR = "#000000"
@@ -154,6 +154,7 @@ class LunarCalendarApp:
             fill=COLOR_QUOTE,
             font=FONT_QUOTE,
             width=420,
+            justify="center",
             tags="text"
         )
 
@@ -266,7 +267,7 @@ class LunarCalendarApp:
         self.canvas.delete("bg")
         self.canvas.create_image(0, 0, image=self.bg_image, anchor="nw", tags="bg")
         self.canvas.tag_lower("bg")
-        self.root.after(900000, self.update_wallpaper)
+        self.root.after(60000, self.update_wallpaper)
 
 # ================== MAIN ==================
 if __name__ == "__main__":
