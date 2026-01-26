@@ -4,8 +4,6 @@ import datetime
 import random
 import os
 
-from numpy import spacing
-
 from lunar_hnd import LunarDate
 
 # ================== SIZE ==================
