@@ -1,3 +1,4 @@
+#from ctypes import c_ushort
 import tkinter as tk
 from PIL import Image, ImageTk
 import datetime
@@ -5,12 +6,14 @@ import random
 import os
 
 from lunar_hnd import LunarDate
+from functions import FreeWeather
+from functions import CustomText
 
 # ================== SIZE ==================
 PORTRAIT_RATIO = 16 / 9
 BASE_WIDTH = 500
 BASE_HEIGHT = 888
-FOOTER_RATIO = 0.12
+FOOTER_RATIO = 0.13
 WALLPAPER_DIR = "wallpaper"
 
 
@@ -30,9 +33,9 @@ COLOR_SEPARATOR = "#000000"
 COLOR_HOANG_DAO = "#d35400"
 COLOR_HAC_DAO = "#7f8c8d"
 COLOR_SHADOW = "#777777"
-
+COLOR_WEATHER = "#000000"
 # ================== EFFECTS ==================
-OFFSET_SHADOW = 2
+OFFSET_SHADOW = 4
 
 # ================== FONTS ==================
 FONT_MONTH = ("Arial", 15, "bold")
@@ -45,6 +48,7 @@ FONT_LABEL = ("Arial", 11, "bold")
 FONT_NORMAL = ("Arial", 11, "")
 FONT_TIME_BIG = ("Arial", 18, "bold")
 FONT_LUNAR_DAY = ("Arial", 42, "bold")
+FONT_WEATHER = ("Arial", 10, "bold")
 
 # ================== SPACING ==================
 FOOTER_LABEL_SPACING = 1.5
@@ -92,34 +96,6 @@ class LunarCalendarApp:
         self.update_all()
         self.update_wallpaper()
 
-    def draw_shadow_text(self, x, y, text, font,
-                         main_color,
-                         shadow_color="#888888",
-                         offset=2,
-                         tag="text"):
-
-        # shadow (dưới phải)
-        self.canvas.create_text(
-            x + offset, y + offset,
-            text=text,
-            fill=shadow_color,
-            font=font,
-            tags=tag
-        )
-
-        # text chính
-        self.canvas.create_text(
-            x, y,
-            text=text,
-            fill=main_color,
-            font=font,
-            tags=tag
-        )
-        
-    def scale_font(self,font, factor):
-        name, size, style = font
-        return (name, int(size * factor), style)
-
     def load_wallpapers(self):
         if not os.path.exists("wallpaper"):
             return
@@ -145,12 +121,14 @@ class LunarCalendarApp:
         now = datetime.datetime.now()
         #now = datetime.datetime(2026, 1, 27, 22, 59)
         ld = LunarDate(now.day, now.month, now.year)
+        we = FreeWeather()
+        ct = CustomText(self.canvas)
 
         # ===== CAN CHI =====
         year_cc = " ".join(ld.getCanChiYear(ld.lunarYear))
         month_cc = " ".join(ld.getCanChiMonth(ld.lunarYear, ld.lunarMonth))
         day_cc = " ".join(ld.getCanChiDay(ld.jd))
-        hour_cc = LunarDate.get_lunar_hour_info(ld.jd, now.hour)['name']
+        hour_cc = ld.getLunarHour(now.hour)['name']
 
         weekday = now.weekday()
         is_sunday = weekday == 6
@@ -166,23 +144,23 @@ class LunarCalendarApp:
             self.W//2, top,
             text=f"Tháng {now.month} - {now.year}",
             fill=COLOR_MONTH,
-            font=self.scale_font(FONT_MONTH,self.scale),
+            font=ct.scale_font(FONT_MONTH,self.scale),
             tags="text"
         )
         # ===== Day number =====
-        self.draw_shadow_text(
+        ct.draw_shadow_text(
             self.W//2, center - int(40*self.scale),
             text=str(now.day),
-            font=self.scale_font(FONT_DAY,self.scale),
-            main_color=day_color, shadow_color=COLOR_SHADOW, offset=OFFSET_SHADOW
+            font=ct.scale_font(FONT_DAY,self.scale),
+            main_color=day_color
         )
 
         # ===== Week day =====
-        self.draw_shadow_text(
+        ct.draw_shadow_text(
             self.W//2, center + int(60*self.scale),
             text=WEEKDAYS[weekday],
-            font=self.scale_font(FONT_WEEKDAY,self.scale),
-            main_color=weekday_color, shadow_color=COLOR_SHADOW, offset=OFFSET_SHADOW
+            font=ct.scale_font(FONT_WEEKDAY,self.scale),
+            main_color=weekday_color
         )
 
         # ===== Quote & Author =====
@@ -191,10 +169,8 @@ class LunarCalendarApp:
             self.W//2, center + int(130*self.scale),
             text=quote,
             fill=COLOR_QUOTE,
-            font=self.scale_font(FONT_QUOTE,self.scale),
+            font=ct.scale_font(FONT_QUOTE,self.scale),
             width=int(self.W*0.8),
-            #spacing2 = int(FONT_QUOTE[1]*self.scale*0.3),
-            #spacing3 = int(FONT_QUOTE[1]*self.scale*0.3),
             justify="center",
             tags="text"
         )
@@ -204,8 +180,16 @@ class LunarCalendarApp:
             self.W//2, center + int(130*self.scale)+quote_height,
             text=author,
             fill=COLOR_AUTHOR,
-            font=self.scale_font(FONT_AUTHOR,self.scale),
+            font=ct.scale_font(FONT_AUTHOR,self.scale),
             tags="text"
+        )
+        
+        # ===== Weather =====
+        ct.draw_text_with_ouline(
+            self.W//2, self.content_h-int(FONT_WEATHER[1]*1.2*self.scale),
+            text=f"{we.district} - Thời tiết: {we.weather} - Nhiệt độ: {we.temp}°C - Độ ẩm: {we.humidity}%",
+            font=ct.scale_font(FONT_WEATHER,self.scale),
+            main_color=COLOR_WEATHER
         )
 
         # ===== FOOTER =====
@@ -228,25 +212,25 @@ class LunarCalendarApp:
         sp = 10
 
         # ===== LEFT: GIỜ =====
-        yl1=y0+int(sp*self.scale)
+        yl1=y0+int((sp+FONT_LABEL[1]/2)*self.scale)
         self.canvas.create_text(x_left, yl1,
             text="GIỜ",
             fill=COLOR_LABEL,
-            font=self.scale_font(FONT_LABEL,self.scale),
+            font=ct.scale_font(FONT_LABEL,self.scale),
             tags="text")
 
         yl2= yl1+int((sp+FONT_LABEL[1])*self.scale)
         self.canvas.create_text(x_left, yl2,
             text=f"Giờ {hour_cc}",
             fill=COLOR_LUNAR,
-            font=self.scale_font(FONT_NORMAL,self.scale),
+            font=ct.scale_font(FONT_NORMAL,self.scale),
             tags="text")
 
         yl3=yl2+int((sp+FONT_NORMAL[1])*self.scale)
         self.canvas.create_text(x_left, yl3,
             text=now.strftime("%H:%M"),
             fill=COLOR_TIME,
-            font=self.scale_font(FONT_TIME_BIG,self.scale),
+            font=ct.scale_font(FONT_TIME_BIG,self.scale),
             tags="text")
         
         hoang_dao_hours = ld.getHoangDaoHours()
@@ -256,14 +240,14 @@ class LunarCalendarApp:
         self.canvas.create_text(x_left, yl4,
             text=hd_line1,
             fill=COLOR_LUNAR,
-            font=self.scale_font(FONT_NORMAL,self.scale),
+            font=ct.scale_font(FONT_NORMAL,self.scale),
             tags="text")
 
         yl5=yl4+int((sp+FONT_NORMAL[1])*self.scale)
         self.canvas.create_text(x_left, yl5,
             text=hd_line2,
             fill=COLOR_LUNAR,
-            font=self.scale_font(FONT_NORMAL, self.scale), 
+            font=ct.scale_font(FONT_NORMAL, self.scale), 
             tags="text")
 
         # ===== MIDDLE: NGÀY ÂM =====
@@ -271,7 +255,7 @@ class LunarCalendarApp:
         self.canvas.create_text(x_mid, ym1,
             text=f"{ld.lunarDay:02d}",
             fill=day_color,
-            font=self.scale_font(FONT_LUNAR_DAY, self.scale), 
+            font=ct.scale_font(FONT_LUNAR_DAY, self.scale), 
             tags="text")
 
         ym2=ym1+int((FONT_LUNAR_DAY[1]/2+sp)*self.scale)
@@ -285,7 +269,7 @@ class LunarCalendarApp:
         self.canvas.create_text(x_mid, ym3,
             text=f"THÁNG {ld.lunarMonth}",
             fill=COLOR_LUNAR,
-            font=self.scale_font(FONT_LUNAR_MONTH, self.scale), 
+            font=ct.scale_font(FONT_LUNAR_MONTH, self.scale), 
             tags="text")
         
         day_type = ld.getDayType()
@@ -302,36 +286,36 @@ class LunarCalendarApp:
         self.canvas.create_text(x_mid, ym4,
             text=day_text,
             fill=day_color,
-            font=self.scale_font(FONT_NORMAL, self.scale), 
+            font=ct.scale_font(FONT_NORMAL, self.scale), 
             tags="text")
 
         # ===== RIGHT: ÂM LỊCH =====
-        yr1=y0+int(sp*self.scale)
+        yr1=y0+int((sp+FONT_LABEL[1]/2)*self.scale)
         self.canvas.create_text(x_right, yr1,
             text="ÂM LỊCH",
             fill=COLOR_LABEL,
-            font=self.scale_font(FONT_LABEL,self.scale), 
+            font=ct.scale_font(FONT_LABEL,self.scale), 
             tags="text")
 
         yr2=yr1 +int((FONT_NORMAL[1]+sp*1.2)*self.scale)
         self.canvas.create_text(x_right, yr2,
             text=f"Năm {year_cc}",
             fill=COLOR_LUNAR,
-            font=self.scale_font(FONT_NORMAL, self.scale), 
+            font=ct.scale_font(FONT_NORMAL, self.scale), 
             tags="text")
 
         yr3=yr2 +int((FONT_NORMAL[1]+sp*1.2)*self.scale)
         self.canvas.create_text(x_right, yr3,
             text=f"Tháng {month_cc}",
             fill=COLOR_LUNAR,
-            font=self.scale_font(FONT_NORMAL, self.scale), 
+            font=ct.scale_font(FONT_NORMAL, self.scale), 
             tags="text")
 
         yr4=yr3 +int((FONT_NORMAL[1]+sp*1.2)*self.scale)
         self.canvas.create_text(x_right, yr4,
             text=f"Ngày {day_cc}",
             fill=COLOR_LUNAR,
-            font=self.scale_font(FONT_NORMAL, self.scale), 
+            font=ct.scale_font(FONT_NORMAL, self.scale), 
             tags="text")
 
         self.root.after(90000, self.update_all)

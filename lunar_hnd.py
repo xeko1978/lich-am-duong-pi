@@ -154,37 +154,7 @@ class LunarDate:
         
         return can[can_index], chi[chi_index]
 
-    @staticmethod
-    def getCanChiHour(jd, hour):
-        """Tính can chi của giờ"""
-        CAN = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"]
-        CHI = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"]
-
-        # Tính chi giờ
-        chi_index = ((hour + 1) // 2) % 12
-
-        # Tính can ngày từ jd
-        can_day_index = (int(jd) + 9) % 10
-
-        # Tính can giờ Tý theo can ngày
-        can_gio_ty_index = {
-            0: 0,  # Giáp -> Giáp
-            5: 0,  # Kỷ  -> Giáp
-            1: 2,  # Ất  -> Bính
-            6: 2,  # Canh-> Bính
-            2: 4,  # Bính-> Mậu
-            7: 4,  # Tân -> Mậu
-            3: 6,  # Đinh-> Canh
-            8: 6,  # Nhâm-> Canh
-            4: 8,  # Mậu -> Nhâm
-            9: 8  # Quý -> Nhâm
-        }.get(can_day_index, 0)
-
-        can_index = (can_gio_ty_index + chi_index) % 10
-
-        return CAN[can_index], CHI[chi_index]
-
-    def get_lunar_hour_info(self, hour):
+    def getLunarHour(self, hour):
         """Lấy thông tin giờ âm lịch"""
         lunar_hours = [
             {"name": "Tý", "time": "23-1", "element": "Thủy"},
