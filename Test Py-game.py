@@ -8,7 +8,7 @@ class TransparentPanelDemo:
         pygame.init()
         
         # Thiết lập cửa sổ
-        self.WIDTH, self.HEIGHT = 800, 600
+        self.WIDTH, self.HEIGHT = 1920, 1080
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
         pygame.display.set_caption("Panel Trong Suốt - Di chuyển bằng phím mũi tên")
         
