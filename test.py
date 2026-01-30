@@ -1,178 +1,113 @@
-import tkinter as tk
-from PIL import Image, ImageTk
-import datetime
-import random
+import pygame
 import os
+import random
 
-PORTRAIT_RATIO = 16 / 9
-BASE_WIDTH = 500
-BASE_HEIGHT = 888
-FOOTER_RATIO = 0.18
+# ---------------- CONFIG ----------------
+SCREEN_WIDTH  = 800
+SCREEN_HEIGHT = 480
+
 WALLPAPER_DIR = "wallpaper"
-FONT = "Arial"
 
-class KioskCalendar:
-    def __init__(self, root):
-        self.root = root
-        root.overrideredirect(True)
-        root.attributes("-topmost", True)
+BG_CHANGE_TIME     = 60_000   # 60 giây (ms)
+PANEL_CHANGE_TIME  = 30_000   # 30 giây (ms)
 
-        SW, SH = root.winfo_screenwidth(), root.winfo_screenheight()
+PANEL_SIZE = (300, 200)
+PANEL_POS  = (50, 50)
+# ----------------------------------------
 
-        if SW >= SH:
-            self.H = SH
-            self.W = int(self.H / PORTRAIT_RATIO)
-            self.X = (SW - self.W) // 2
-            self.Y = 0
-        else:
-            self.W, self.H = SW, SH
-            self.X = self.Y = 0
 
-        root.geometry(f"{self.W}x{self.H}+{self.X}+{self.Y}")
+def load_random_image(path, size=None, alpha=False):
+    files = [
+        f for f in os.listdir(path)
+        if f.lower().endswith((".png", ".jpg", ".jpeg"))
+    ]
 
-        self.scale = min(self.W / BASE_WIDTH, self.H / BASE_HEIGHT)
-        self.footer_h = int(self.H * FOOTER_RATIO)
-        self.content_h = self.H - self.footer_h
+    if not files:
+        return None
 
-        self.canvas = tk.Canvas(root, width=self.W, height=self.H, highlightthickness=0)
-        self.canvas.pack()
+    filename = random.choice(files)
+    img = pygame.image.load(os.path.join(path, filename))
 
-        # Exit
-        root.bind("<Escape>", lambda e: root.destroy())
-        root.bind("<Control-q>", lambda e: root.destroy())
-        self.canvas.bind("<Button-3>", lambda e: root.destroy())
+    if alpha:
+        img = img.convert_alpha()
+    else:
+        img = img.convert()
 
-        # Wallpapers
-        self.wallpapers = []
-        if os.path.isdir(WALLPAPER_DIR):
-            self.wallpapers = [
-                os.path.join(WALLPAPER_DIR, f)
-                for f in os.listdir(WALLPAPER_DIR)
-                if f.lower().endswith(".jpg")
-            ]
+    if size:
+        img = pygame.transform.smoothscale(img, size)
 
-        self.bg_img = None
+    return img
 
-        self.draw_footer()
-        self.update_wallpaper()
-        self.update_ui()
 
-    # ---------------------------
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("Pygame Wallpaper Demo")
 
-    def draw_footer(self):
-        self.canvas.create_rectangle(
-            0, self.content_h, self.W, self.H,
-            fill="#d8efb5", outline="", tags="ui"
-        )
-        w = self.W // 3
-        for i in range(1, 3):
-            self.canvas.create_line(
-                i * w, self.content_h, i * w, self.H,
-                width=2, tags="ui"
+    clock = pygame.time.Clock()
+
+    # --- load ảnh lần đầu ---
+    background = load_random_image(
+        WALLPAPER_DIR,
+        (SCREEN_WIDTH, SCREEN_HEIGHT),
+        alpha=False
+    )
+
+    panel_surface = pygame.Surface(PANEL_SIZE, pygame.SRCALPHA)
+    panel_image = load_random_image(
+        WALLPAPER_DIR,
+        PANEL_SIZE,
+        alpha=True
+    )
+
+    panel_surface.blit(panel_image, (0, 0))
+
+    # --- timer ---
+    last_bg_change    = pygame.time.get_ticks()
+    last_panel_change = pygame.time.get_ticks()
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        now = pygame.time.get_ticks()
+
+        # --- đổi background mỗi 60s ---
+        if now - last_bg_change >= BG_CHANGE_TIME:
+            bg = load_random_image(
+                WALLPAPER_DIR,
+                (SCREEN_WIDTH, SCREEN_HEIGHT),
+                alpha=False
             )
+            if bg:
+                background = bg
+            last_bg_change = now
 
-    # ---------------------------
+        # --- đổi panel mỗi 30s ---
+        if now - last_panel_change >= PANEL_CHANGE_TIME:
+            img = load_random_image(
+                WALLPAPER_DIR,
+                PANEL_SIZE,
+                alpha=True
+            )
+            if img:
+                panel_surface.fill((0, 0, 0, 0))
+                panel_surface.blit(img, (0, 0))
+            last_panel_change = now
 
-    def update_wallpaper(self):
-        if not self.wallpapers:
-            return
+        # --- render ---
+        if background:
+            screen.blit(background, (0, 0))
 
-        img = Image.open(random.choice(self.wallpapers))
-        img = img.resize((self.W, self.content_h), Image.LANCZOS)
-        self.bg_img = ImageTk.PhotoImage(img)
+        screen.blit(panel_surface, PANEL_POS)
 
-        self.canvas.delete("bg")
-        self.canvas.create_image(
-            0, 0, anchor="nw", image=self.bg_img, tags="bg"
-        )
+        pygame.display.flip()
+        clock.tick(30)
 
-        self.root.after(900000, self.update_wallpaper)
+    pygame.quit()
 
-    # ---------------------------
-
-    def update_ui(self):
-        self.canvas.delete("ui")
-
-        now = datetime.datetime.now()
-
-        top = int(50 * self.scale)
-        center = self.content_h // 2
-
-        # Header
-        self.canvas.create_text(
-            self.W//2, top,
-            text=f"Tháng {now.month} - {now.year}",
-            fill="#2ecc71",
-            font=(FONT, int(24*self.scale), "bold"),
-            tags="ui"
-        )
-
-        # Day number
-        self.canvas.create_text(
-            self.W//2, center - int(40*self.scale),
-            text=str(now.day),
-            fill="#1f77b4",
-            font=(FONT, int(130*self.scale), "bold"),
-            tags="ui"
-        )
-
-        thu = ["Hai","Ba","Tư","Năm","Sáu","Bảy","Chủ Nhật"][now.weekday()]
-        self.canvas.create_text(
-            self.W//2, center + int(60*self.scale),
-            text=f"Thứ {thu}",
-            fill="#1f77b4",
-            font=(FONT, int(30*self.scale), "bold"),
-            tags="ui"
-        )
-
-        # Quote
-        self.canvas.create_text(
-            self.W//2, center + int(130*self.scale),
-            text="Hôm nay là một trang mới trong cuộc đời bạn.",
-            width=int(self.W*0.8),
-            justify="center",
-            fill="#1f77b4",
-            font=(FONT, int(18*self.scale)),
-            tags="ui"
-        )
-
-        self.canvas.create_text(
-            self.W//2, center + int(170*self.scale),
-            text="- Khuyết danh",
-            fill="#f39c12",
-            font=(FONT, int(14*self.scale), "italic"),
-            tags="ui"
-        )
-
-        # Footer text
-        w = self.W // 3
-        y = self.content_h + int(35*self.scale)
-
-        self.canvas.create_text(w//2, y, text="GIỜ",
-            fill="#888", font=(FONT, int(14*self.scale), "bold"), tags="ui")
-        self.canvas.create_text(w//2, y+30,
-            text=now.strftime("%H:%M"),
-            fill="#1f77b4", font=(FONT, int(22*self.scale), "bold"), tags="ui")
-
-        self.canvas.create_text(w+w//2, y+10,
-            text=str(now.day),
-            fill="#1f77b4", font=(FONT, int(50*self.scale), "bold"), tags="ui")
-        self.canvas.create_text(w+w//2, y+55,
-            text=f"THÁNG {now.month}",
-            fill="black", font=(FONT, int(16*self.scale), "bold"), tags="ui")
-
-        self.canvas.create_text(w*2+w//2, y,
-            text="ÂM LỊCH",
-            fill="#888", font=(FONT, int(14*self.scale), "bold"), tags="ui")
-        self.canvas.create_text(w*2+w//2, y+30,
-            text="Ất Tỵ",
-            fill="black", font=(FONT, int(16*self.scale)), tags="ui")
-
-        self.root.after(60000, self.update_ui)
-
-# =============================
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    KioskCalendar(root)
-    root.mainloop()
+    main()

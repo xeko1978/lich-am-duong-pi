@@ -120,7 +120,7 @@ class TransparentPanelDemo:
         
         # Vẽ panel chính với viền
         pygame.draw.rect(surface, color, 
-                        (0, 0, surface.get_width(), surface.get_height()),
+                        (0, 0, surface.get_width(), surface.get_height()), 
                         border_radius=15)
         
         # Vẽ viền
